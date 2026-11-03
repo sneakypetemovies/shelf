@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Movie Shelf</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Movie Shelf">
+<style>
+:root{--bg:#111827;--card:#1f2937;--tx:#f3f4f6;--mu:#9ca3af;--ac:#f59e0b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px system-ui,sans-serif;padding:env(safe-area-inset-top) 0 calc(70px + env(safe-area-inset-bottom))}
+.view{display:none;padding:14px}.view.on{display:block}
+h2{margin:4px 0 12px}
+input,select,button{font:inherit;padding:12px;border-radius:10px;border:1px solid #374151;background:var(--card);color:var(--tx);width:100%;margin-bottom:10px}
+button{background:var(--ac);color:#111;border:0;font-weight:600}
+button.sec{background:var(--card);color:var(--tx);border:1px solid #374151}
+.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}
+.item{display:flex;gap:12px;background:var(--card);border-radius:12px;padding:10px;margin-bottom:10px}
+.item img,.ph{width:60px;height:90px;object-fit:cover;border-radius:6px;background:#374151;flex:none}
+.item .t{font-weight:600}.item .m{color:var(--mu);font-size:14px}
+.item button{width:auto;padding:6px 12px;margin:6px 0 0}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#0b1220;border-top:1px solid #374151;padding-bottom:env(safe-area-inset-bottom)}
+nav button{background:none;color:var(--mu);border-radius:0;margin:0;border:0;padding:16px 4px}
+nav button.on{color:var(--ac)}
+#reader{width:100%;margin-bottom:10px}
+.note{color:var(--mu);font-size:14px;margin:6px 0 12px}
+.dup{background:#7f1d1d;border:1px solid #ef4444;border-radius:12px;padding:12px;margin-bottom:12px}
+.dup button{margin:10px 0 0}
+</style></head><body>
+
+<div id="v-coll" class="view on">
+  <h2>My Collection <span id="count" class="m" style="font-size:14px;color:var(--mu)"></span></h2>
+  <input id="filter" placeholder="Search your collection…">
+  <div id="list"></div>
+</div>
+
+<div id="v-add" class="view">
+  <h2>Add a Movie</h2>
+  <select id="fmt"><option>Blu-ray</option><option>DVD</option><option>4K UHD</option><option>Digital</option></select>
+  <button id="scanBtn">Scan barcode</button>
+  <div id="reader"></div>
+  <div id="dup"></div>
+  <div id="status" class="note"></div>
+  <input id="q" placeholder="…or type a title" enterkeyhint="search">
+  <button class="sec" id="searchBtn">Search</button>
+  <div id="results"></div>
+</div>
+
+<div id="v-set" class="view">
+  <h2>Settings &amp; Backup</h2>
+  <p class="note">TMDB API key (stored only on this phone):</p>
+  <input id="key" placeholder="Paste your TMDB API key">
+  <button id="saveKey">Save key</button>
+  <hr style="border-color:#374151;margin:18px 0">
+  <button id="exp" class="sec">Export backup (JSON file)</button>
+  <button id="impBtn" class="sec">Import backup</button>
+  <input id="imp" type="file" accept=".json" style="display:none">
+  <p class="note">Your collection lives only on this phone. Export a backup now and then.</p>
+</div>
+
+<nav><button data-v="coll" class="on">Collection</button><button data-v="add">Add</button><button data-v="set">Settings</button></nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+let movies=[];try{movies=JSON.parse(localStorage.getItem('movies')||'[]')}catch(e){}
+let apiKey=localStorage.getItem('tmdb')||'';
+const save=()=>localStorage.setItem('movies',JSON.stringify(movies));
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let scanner=null,lastUPC='';
+
+// ---- navigation
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button,.view').forEach(e=>e.classList.remove('on'));
+  b.classList.add('on');$('#v-'+b.dataset.v).classList.add('on');
+  if(b.dataset.v!=='add')stopScan();
+});
+
+// ---- collection
+function render(){
+  const f=$('#filter').value.toLowerCase();
+  const l=movies.filter(m=>m.title.toLowerCase().includes(f)).sort((a,b)=>a.title.localeCompare(b.title));
+  $('#count').textContent='('+movies.length+')';
+  $('#list').innerHTML=l.map(m=>`<div class="item">${m.poster?`<img src="https://image.tmdb.org/t/p/w185${m.poster}" loading="lazy">`:'<div class="ph"></div>'}
+  <div><div class="t">${esc(m.title)}</div><div class="m">${esc(m.year)} · ${esc(m.format)}</div>
+  <button class="sec" data-del="${m.uid}">Remove</button></div></div>`).join('')||'<p class="note">Nothing here yet. Tap Add to start.</p>';
+}
+$('#filter').oninput=render;
+$('#list').onclick=e=>{const id=e.target.dataset.del;if(id&&confirm('Remove this movie?')){movies=movies.filter(m=>m.uid!=id);save();render()}};
+
+// ---- scanning
+function stopScan(){if(scanner){scanner.stop().catch(()=>{});scanner=null;$('#scanBtn').textContent='Scan barcode'}}
+$('#scanBtn').onclick=async()=>{
+  if(scanner){stopScan();return}
+  if(typeof Html5Qrcode==='undefined'){$('#status').textContent='Scanner library not loaded (need internet the first time).';return}
+  scanner=new Html5Qrcode('reader');
+  $('#scanBtn').textContent='Stop scanning';
+  try{
+    await scanner.start({facingMode:'environment'},
+      {fps:10,qrbox:{width:280,height:140},formatsToSupport:[Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.UPC_E,Html5QrcodeSupportedFormats.EAN_8]},
+      code=>{if(code===lastUPC&&!scanner)return;lastUPC=code;stopScan();lookupUPC(code)});
+  }catch(e){$('#status').textContent='Camera error: '+e+' — check camera permission.';stopScan()}
+};
+const clean=t=>t.replace(/[\(\[].*?[\)\]]/g,' ').replace(/\b(blu-?ray|dvd|4k|uhd|ultra hd|digital|hd|widescreen|special edition|steelbook|combo pack|disc|bd|movie)\b/gi,' ').replace(/[+\/:-]\s*$/,'').replace(/\s+/g,' ').trim();
+async function lookupUPC(code){
+  $('#dup').innerHTML='';$('#results').innerHTML='';
+  const have=movies.filter(m=>m.upc===code);
+  if(have.length){
+    const m=have[0];
+    $('#status').textContent='';
+    $('#dup').innerHTML=`<div class="dup"><b>You already have a copy.</b><br>${esc(m.title)} (${esc(m.year)}) · ${esc(m.format)}${have.length>1?' · '+have.length+' copies':''}<button class="sec" id="dismissDup">Dismiss</button></div>`;
+    $('#dismissDup').onclick=()=>{$('#dup').innerHTML='';$('#status').textContent='Dismissed. Scan the next one!'};
+    return;
+  }
+  $('#status').textContent='Scanned '+code+' — looking it up…';
+  try{
+    const r=await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc='+code);
+    const d=await r.json();
+    const t=d.items&&d.items[0]&&d.items[0].title;
+    if(t){$('#q').value=clean(t);$('#status').textContent='Barcode says: "'+t+'". Pick the right match below (edit the title and search again if needed).';searchTMDB()}
+    else $('#status').textContent='Barcode '+code+' not found. Type the title instead.';
+  }catch(e){$('#status').textContent='Lookup failed (offline, or daily limit hit). Type the title instead.'}
+}
+
+// ---- TMDB search
+async function searchTMDB(){
+  const q=$('#q').value.trim();if(!q)return;
+  if(!apiKey){$('#status').textContent='Add your TMDB API key in Settings first.';return}
+  $('#results').innerHTML='<p class="note">Searching…</p>';
+  try{
+    const r=await fetch('https://api.themoviedb.org/3/search/movie?api_key='+encodeURIComponent(apiKey)+'&query='+encodeURIComponent(q));
+    const d=await r.json();
+    if(!d.results){$('#results').innerHTML='<p class="note">Error: '+esc(d.status_message||'unknown')+'</p>';return}
+    window._res=d.results.slice(0,8);
+    $('#results').innerHTML=window._res.map((m,i)=>`<div class="item">${m.poster_path?`<img src="https://image.tmdb.org/t/p/w185${m.poster_path}">`:'<div class="ph"></div>'}
+    <div><div class="t">${esc(m.title)}</div><div class="m">${esc((m.release_date||'').slice(0,4))}</div><button data-add="${i}">Add to collection</button></div></div>`).join('')||'<p class="note">No matches.</p>';
+  }catch(e){$('#results').innerHTML='<p class="note">Search failed — are you online?</p>'}
+}
+$('#searchBtn').onclick=searchTMDB;
+$('#q').onkeydown=e=>{if(e.key==='Enter')searchTMDB()};
+$('#results').onclick=e=>{
+  const i=e.target.dataset.add;if(i===undefined)return;
+  const m=window._res[i];
+  movies.push({uid:Date.now(),id:m.id,title:m.title,year:(m.release_date||'').slice(0,4),poster:m.poster_path,overview:m.overview,format:$('#fmt').value,upc:lastUPC});
+  save();render();lastUPC='';
+  $('#results').innerHTML='';$('#q').value='';$('#status').textContent='Added "'+m.title+'". Scan the next one!';
+};
+
+// ---- settings / backup
+$('#key').value=apiKey;
+$('#saveKey').onclick=()=>{apiKey=$('#key').value.trim();localStorage.setItem('tmdb',apiKey);alert('Saved')};
+$('#exp').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(movies,null,1)],{type:'application/json'}));
+  a.download='movie-shelf-backup.json';a.click();
+};
+$('#impBtn').onclick=()=>$('#imp').click();
+$('#imp').onchange=async e=>{
+  try{const d=JSON.parse(await e.target.files[0].text());
+    if(Array.isArray(d)&&confirm('Replace your collection with '+d.length+' movies from this file?')){movies=d;save();render()}
+  }catch(err){alert('That file could not be read.')}
+};
+
+render();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+</script></body></html>
