@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Movie Shelf">
 <style>
-:root{--bg: #989F7E;--card: #6D7361;--tx: #B6AD90;--mu: #C0C7AB;--ac: #AC855B;}
+:root{--bg:#111827;--card:#1f2937;--tx:#f3f4f6;--mu:#9ca3af;--ac:#f59e0b}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:16px system-ui,sans-serif;padding:env(safe-area-inset-top) 0 calc(70px + env(safe-area-inset-bottom))}
 .view{display:none;padding:14px}.view.on{display:block}
@@ -116,12 +116,26 @@ async function lookupUPC(code){
   }
   $('#status').textContent='Scanned '+code+' — looking it up…';
   try{
-    const r=await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc='+code);
-    const d=await r.json();
+    const d=await getJSON('https://api.upcitemdb.com/prod/trial/lookup?upc='+code);
     const t=d.items&&d.items[0]&&d.items[0].title;
     if(t){$('#q').value=clean(t);$('#status').textContent='Barcode says: "'+t+'". Pick the right match below (edit the title and search again if needed).';searchTMDB()}
     else $('#status').textContent='Barcode '+code+' not found. Type the title instead.';
-  }catch(e){$('#status').textContent='Lookup failed (offline, or daily limit hit). Type the title instead.'}
+  }catch(e){
+    $('#status').textContent=(e==='limit'?'Daily lookup limit reached.':'Lookup failed ('+(navigator.onLine?'online':'offline')+', '+e+').')+' Type the title instead.';
+  }
+}
+// tries the direct request first, then two free relay services (the barcode site blocks direct browser requests)
+async function getJSON(url){
+  const tries=[url,'https://api.allorigins.win/raw?url='+encodeURIComponent(url),'https://corsproxy.io/?url='+encodeURIComponent(url)];
+  let err='unknown';
+  for(const u of tries){
+    try{
+      const r=await fetch(u);
+      if(r.status===429){err='limit';continue}
+      return await r.json();
+    }catch(e){err=e&&e.message?e.message:String(e)}
+  }
+  throw err;
 }
 
 // ---- TMDB search
