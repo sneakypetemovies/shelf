@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Movie Shelf</title>
+<title>our shelf</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#111827">
@@ -31,26 +31,26 @@ nav button.on{color:var(--ac)}
 </style></head><body>
 
 <div id="v-coll" class="view on">
-  <h2>My Collection <span id="count" class="m" style="font-size:14px;color:var(--mu)"></span></h2>
-  <input id="filter" placeholder="Search your collection…">
+  <h2>our collection <span id="count" class="m" style="font-size:14px;color:var(--mu)"></span></h2>
+  <input id="filter" placeholder="˖ ࣪ ⊹ search ⊹ ࣪ ˖">
   <div id="list"></div>
 </div>
 
 <div id="v-add" class="view">
-  <h2>Add a Movie</h2>
-  <select id="fmt"><option>Blu-ray</option><option>DVD</option><option>4K UHD</option><option>Digital</option></select>
+  <h2>add!</h2>
+  <select id="fmt"><option>DVD</option>
   <button id="scanBtn">Scan barcode</button>
   <div id="reader"></div>
   <div id="dup"></div>
   <div id="status" class="note"></div>
   <input id="q" placeholder="…or type a title" enterkeyhint="search">
-  <button class="sec" id="searchBtn">Search</button>
+  <button class="sec" id="searchBtn">search</button>
   <div id="results"></div>
 </div>
 
 <div id="v-set" class="view">
   <h2>Settings &amp; Backup</h2>
-  <p class="note">TMDB API key (stored only on this phone):</p>
+  <p class="note"></p>
   <input id="key" placeholder="Paste your TMDB API key">
   <button id="saveKey">save</button>
   <hr style="border-color:#374151;margin:18px 0">
@@ -114,7 +114,7 @@ async function lookupUPC(code){
     $('#dismissDup').onclick=()=>{$('#dup').innerHTML='';$('#status').textContent='Dismissed. Scan the next one!'};
     return;
   }
-  $('#status').textContent='Scanned '+code+' — looking it up…';
+  $('#status').textContent='Scanned '+code+' — beep boop... searching..... beep boop';
   try{
     const d=await getJSON('https://api.upcitemdb.com/prod/trial/lookup?upc='+code);
     const t=d.items&&d.items[0]&&d.items[0].title;
