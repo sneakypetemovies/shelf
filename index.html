@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>our shelf</title>
+<title>Movie Shelf</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<meta name="theme-color" content="#978F66">
+<meta name="theme-color" content="#1E201E">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Our Movies">
+<meta name="apple-mobile-web-app-title" content="Movie Shelf">
 <style>
-:root {--bg: #1E201E;--card: #3C3D37;--tx: #ECDFCC;--mu: #9CB080;--ac: #ECDFCC;}
+:root{--bg:#1E201E;--card:#3C3D37;--tx:#ECDFCC;--mu:#9CB080;--ac:#ECDFCC}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:16px system-ui,sans-serif;padding:env(safe-area-inset-top) 0 calc(70px + env(safe-area-inset-bottom))}
 .view{display:none;padding:14px}.view.on{display:block}
@@ -18,10 +18,10 @@ button{background:var(--ac);color:#111;border:0;font-weight:600}
 button.sec{background:var(--card);color:var(--tx);border:1px solid #374151}
 .row{display:flex;gap:10px;align-items:center}.row>*{flex:1}
 .item{display:flex;gap:12px;background:var(--card);border-radius:12px;padding:10px;margin-bottom:10px}
-.item img,.ph{width:60px;height:90px;object-fit:cover;border-radius:6px;background:#978F66;flex:none}
+.item img,.ph{width:60px;height:90px;object-fit:cover;border-radius:6px;background:#374151;flex:none}
 .item .t{font-weight:600}.item .m{color:var(--mu);font-size:14px}
 .item button{width:auto;padding:6px 12px;margin:6px 0 0}
-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#978F66;border-top:1px solid #374151;padding-bottom:env(safe-area-inset-bottom)}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#0b1220;border-top:1px solid #374151;padding-bottom:env(safe-area-inset-bottom)}
 nav button{background:none;color:var(--mu);border-radius:0;margin:0;border:0;padding:16px 4px}
 nav button.on{color:var(--ac)}
 #reader{width:100%;margin-bottom:10px}
@@ -31,36 +31,36 @@ nav button.on{color:var(--ac)}
 </style></head><body>
 
 <div id="v-coll" class="view on">
-  <h2>our collection <span id="count" class="m" style="font-size:14px;color:var(--mu)"></span></h2>
-  <input id="filter" placeholder="˖ ࣪ ⊹ search ⊹ ࣪ ˖">
+  <h2>My Collection <span id="count" class="m" style="font-size:14px;color:var(--mu)"></span></h2>
+  <input id="filter" placeholder="Search your collection…">
   <div id="list"></div>
 </div>
 
 <div id="v-add" class="view">
-  <h2>add!</h2>
-  <select id="fmt"><option>DVD</option>
+  <h2>Add a Movie</h2>
+  <select id="fmt"><option>Blu-ray</option><option>DVD</option><option>4K UHD</option><option>Digital</option></select>
   <button id="scanBtn">Scan barcode</button>
   <div id="reader"></div>
   <div id="dup"></div>
   <div id="status" class="note"></div>
   <input id="q" placeholder="…or type a title" enterkeyhint="search">
-  <button class="sec" id="searchBtn">search</button>
+  <button class="sec" id="searchBtn">Search</button>
   <div id="results"></div>
 </div>
 
 <div id="v-set" class="view">
-  <h2>settings &amp; backup</h2>
-  <p class="note"></p>
+  <h2>Settings &amp; Backup</h2>
+  <p class="note">TMDB API key (stored only on this phone):</p>
   <input id="key" placeholder="Paste your TMDB API key">
-  <button id="saveKey">save</button>
+  <button id="saveKey">Save key</button>
   <hr style="border-color:#374151;margin:18px 0">
-  <button id="exp" class="sec">ixport backup</button>
-  <button id="impBtn" class="sec">import backup</button>
+  <button id="exp" class="sec">Export backup (JSON file)</button>
+  <button id="impBtn" class="sec">Import backup</button>
   <input id="imp" type="file" accept=".json" style="display:none">
-  <p class="note"></p>
+  <p class="note">Your collection lives only on this phone. Export a backup now and then.</p>
 </div>
 
-<nav><button data-v="coll" class="on">♡ our collection ♡</button><button data-v="add">add</button><button data-v="set">backup</button></nav>
+<nav><button data-v="coll" class="on">Collection</button><button data-v="add">Add</button><button data-v="set">Settings</button></nav>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script>
@@ -114,11 +114,11 @@ async function lookupUPC(code){
     $('#dismissDup').onclick=()=>{$('#dup').innerHTML='';$('#status').textContent='Dismissed. Scan the next one!'};
     return;
   }
-  $('#status').textContent='Scanned '+code+' — beep boop... searching..... beep boop';
+  $('#status').textContent='Scanned '+code+' — looking it up…';
   try{
     const d=await getJSON('https://api.upcitemdb.com/prod/trial/lookup?upc='+code);
     const t=d.items&&d.items[0]&&d.items[0].title;
-    if(t){$('#q').value=clean(t);$('#status').textContent='Barcode says: "'+t+'". Pick the right match below.';searchTMDB()}
+    if(t){$('#q').value=clean(t);$('#status').textContent='Barcode says: "'+t+'". Pick the right match below (edit the title and search again if needed).';searchTMDB()}
     else $('#status').textContent='Barcode '+code+' not found. Type the title instead.';
   }catch(e){
     $('#status').textContent=(e==='limit'?'Daily lookup limit reached.':'Lookup failed ('+(navigator.onLine?'online':'offline')+', '+e+').')+' Type the title instead.';
@@ -141,8 +141,8 @@ async function getJSON(url){
 // ---- TMDB search
 async function searchTMDB(){
   const q=$('#q').value.trim();if(!q)return;
-  if(!apiKey){$('#status').textContent='add API key';return}
-  $('#results').innerHTML='<p class="note">beep boop... searching..... beep boop</p>';
+  if(!apiKey){$('#status').textContent='Add your TMDB API key in Settings first.';return}
+  $('#results').innerHTML='<p class="note">Searching…</p>';
   try{
     const r=await fetch('https://api.themoviedb.org/3/search/movie?api_key='+encodeURIComponent(apiKey)+'&query='+encodeURIComponent(q));
     const d=await r.json();
