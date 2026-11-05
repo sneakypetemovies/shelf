@@ -72,7 +72,7 @@ let scanner=null,lastUPC='';
 
 // ---- navigation
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('nav button,.view').forEach(e=>e.classList.('on'));
+  document.querySelectorAll('nav button,.view').forEach(e=>e.classList.remove('on'));
   b.classList.add('on');$('#v-'+b.dataset.v).classList.add('on');
   if(b.dataset.v!=='add')stopScan();
 });
@@ -90,12 +90,12 @@ $('#filter').oninput=render;
 $('#list').onclick=e=>{const id=e.target.dataset.del;if(id&&confirm('u sure?')){movies=movies.filter(m=>m.uid!=id);save();render()}};
 
 // ---- scanning
-function stopScan(){if(scanner){scanner.stop().catch(()=>{});scanner=null;$('#scanBtn').textContent='Scan barcode'}}
+function stopScan(){if(scanner){scanner.stop().catch(()=>{});scanner=null;$('#scanBtn').textContent='scan'}}
 $('#scanBtn').onclick=async()=>{
   if(scanner){stopScan();return}
   if(typeof Html5Qrcode==='undefined'){$('#status').textContent='Scanner library not loaded (need internet the first time).';return}
   scanner=new Html5Qrcode('reader');
-  $('#scanBtn').textContent='Stop scanning';
+  $('#scanBtn').textContent='stop scanning';
   try{
     await scanner.start({facingMode:'environment'},
       {fps:10,qrbox:{width:280,height:140},formatsToSupport:[Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.UPC_E,Html5QrcodeSupportedFormats.EAN_8]},
