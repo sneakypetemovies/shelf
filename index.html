@@ -21,7 +21,7 @@ button.sec{background:var(--card);color:var(--tx);border:1px solid #374151}
 .item img,.ph{width:60px;height:90px;object-fit:cover;border-radius:6px;background:#374151;flex:none}
 .item .t{font-weight:600}.item .m{color:var(--mu);font-size:14px}
 .item button{width:auto;padding:6px 12px;margin:6px 0 0}
-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#0b1220;border-top:1px solid #374151;padding-bottom:env(safe-area-inset-bottom)}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#5c6040;border-top:1px solid #5c6040;padding-bottom:env(safe-area-inset-bottom)}
 nav button{background:none;color:var(--mu);border-radius:0;margin:0;border:0;padding:16px 4px}
 nav button.on{color:var(--ac)}
 #reader{width:100%;margin-bottom:10px}
@@ -31,36 +31,35 @@ nav button.on{color:var(--ac)}
 </style></head><body>
 
 <div id="v-coll" class="view on">
-  <h2>My Collection <span id="count" class="m" style="font-size:14px;color:var(--mu)"></span></h2>
-  <input id="filter" placeholder="Search your collection…">
+  <h2>our collection<span id="count" class="m" style="font-size:14px;color:var(--mu)"></span></h2>
+  <input id="filter" placeholder="search here!">
   <div id="list"></div>
 </div>
 
 <div id="v-add" class="view">
-  <h2>Add a Movie</h2>
-  <select id="fmt"><option>Blu-ray</option><option>DVD</option><option>4K UHD</option><option>Digital</option></select>
-  <button id="scanBtn">Scan barcode</button>
+  <h2>add a movie</h2>
+  <select id="fmt"><option>DVD</option><option>Blu-ray</option><option>4K UHD</option><option>Digital</option></select>
+  <button id="scanBtn">scan</button>
   <div id="reader"></div>
   <div id="dup"></div>
   <div id="status" class="note"></div>
   <input id="q" placeholder="…or type a title" enterkeyhint="search">
-  <button class="sec" id="searchBtn">Search</button>
+  <button class="sec" id="searchBtn">search</button>
   <div id="results"></div>
 </div>
 
 <div id="v-set" class="view">
-  <h2>Settings &amp; Backup</h2>
-  <p class="note">TMDB API key (stored only on this phone):</p>
-  <input id="key" placeholder="Paste your TMDB API key">
-  <button id="saveKey">Save key</button>
+  <h2>settings &amp; backup</h2>
+  <p class="note"></p>
+  <input id="key" placeholder="Paste API key">
+  <button id="saveKey">save</button>
   <hr style="border-color:#374151;margin:18px 0">
-  <button id="exp" class="sec">Export backup (JSON file)</button>
-  <button id="impBtn" class="sec">Import backup</button>
+  <button id="exp" class="sec">export backup</button>
+  <button id="impBtn" class="sec">import backup</button>
   <input id="imp" type="file" accept=".json" style="display:none">
-  <p class="note">Your collection lives only on this phone. Export a backup now and then.</p>
 </div>
 
-<nav><button data-v="coll" class="on">Collection</button><button data-v="add">Add</button><button data-v="set">Settings</button></nav>
+<nav><button data-v="coll" class="on">♡ our collection ♡</button><button data-v="add">add movie</button><button data-v="set">⚙</button></nav>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script>
