@@ -119,7 +119,7 @@ function render(){
   <div><div class="t">${esc(m.title)}</div><div class="m">${esc(m.year)} · ${esc(m.format)}</div>
   <div><span class="vr" data-vr="${m.uid}">${shown.has(String(m.uid))?'hide ratings':'view ratings'}</span></div>
   ${shown.has(String(m.uid))?stars(m):''}
-  <button class="sec" data-del="${m.uid}">remove</button></div></div>`).join('')||'<p class="note">nothing here</p>';
+  ${shown.has(String(m.uid))?`<button class="sec" data-del="${m.uid}">remove</button>`:''}</div></div>`).join('')||'<p class="note">nothing here</p>';
 }
 $('#filter').oninput=render;
 $('#list').addEventListener('click',e=>{
