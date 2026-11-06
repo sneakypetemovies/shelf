@@ -54,6 +54,11 @@ nav button.on{color:var(--ac)}
   <input id="key" placeholder="Paste API key">
   <button id="saveKey">save</button>
   <hr style="border-color:#6B7556;margin:18px 0">
+  <input id="db" placeholder="Shared collection link (Firebase URL)">
+  <button id="saveDb">connect</button>
+  <button id="invite" class="sec">copy invite link for a friend</button>
+  <div id="syncst" class="note"></div>
+  <hr style="border-color:#6B7556;margin:18px 0">
   <button id="exp" class="sec">export backup</button>
   <button id="impBtn" class="sec">import backup</button>
   <input id="imp" type="file" accept=".json" style="display:none">
@@ -69,6 +74,7 @@ let apiKey=localStorage.getItem('tmdb')||'';
 const save=()=>localStorage.setItem('movies',JSON.stringify(movies));
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let scanner=null,lastUPC='';
+let dbUrl=localStorage.getItem('db')||'';
 
 // ---- navigation
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
@@ -87,7 +93,13 @@ function render(){
   <button class="sec" data-del="${m.uid}">remove</button></div></div>`).join('')||'<p class="note">nothing here</p>';
 }
 $('#filter').oninput=render;
-$('#list').onclick=e=>{const id=e.target.dataset.del;if(id&&confirm('u sure?')){movies=movies.filter(m=>m.uid!=id);save();render()}};
+$('#list').onclick=async e=>{
+  const id=e.target.dataset.del;
+  if(id&&confirm('u sure?')){
+    if(dbUrl){try{const r=await fetch(dbUrl+'/movies/'+id+'.json',{method:'DELETE'});if(!r.ok)throw 0}catch(err){alert("Couldn't update the shared collection. Check your connection.");return}}
+    movies=movies.filter(m=>m.uid!=id);save();render();
+  }
+};
 
 // ---- scanning
 function stopScan(){if(scanner){scanner.stop().catch(()=>{});scanner=null;$('#scanBtn').textContent='scan'}}
@@ -153,10 +165,12 @@ async function searchTMDB(){
 }
 $('#searchBtn').onclick=searchTMDB;
 $('#q').onkeydown=e=>{if(e.key==='Enter')searchTMDB()};
-$('#results').onclick=e=>{
+$('#results').onclick=async e=>{
   const i=e.target.dataset.add;if(i===undefined)return;
   const m=window._res[i];
-  movies.push({uid:Date.now(),id:m.id,title:m.title,year:(m.release_date||'').slice(0,4),poster:m.poster_path,overview:m.overview,format:$('#fmt').value,upc:lastUPC});
+  const mv={uid:Date.now(),id:m.id,title:m.title,year:(m.release_date||'').slice(0,4),poster:m.poster_path||'',overview:m.overview||'',format:$('#fmt').value,upc:lastUPC||''};
+  if(dbUrl){try{const r=await fetch(dbUrl+'/movies/'+mv.uid+'.json',{method:'PUT',body:JSON.stringify(mv)});if(!r.ok)throw 0}catch(err){alert("Couldn't save to the shared collection. Check your connection.");return}}
+  movies.push(mv);
   save();render();lastUPC='';
   $('#results').innerHTML='';$('#q').value='';$('#status').textContent='Added "'+m.title+'". Scan the next one!';
 };
@@ -175,6 +189,56 @@ $('#imp').onchange=async e=>{
     if(Array.isArray(d)&&confirm('Replace your collection with '+d.length+' movies from this file?')){movies=d;save();render()}
   }catch(err){alert('That file could not be read.')}
 };
+
+// ---- shared collection (Firebase Realtime Database over plain web requests)
+function setSync(t){$('#syncst').textContent=t}
+async function sync(){
+  if(!dbUrl){setSync('Not connected. This collection is only on this device.');return}
+  try{
+    const r=await fetch(dbUrl+'/movies.json');
+    if(!r.ok)throw new Error('status '+r.status);
+    const d=await r.json()||{};
+    movies=Object.values(d).filter(Boolean);
+    save();render();
+    setSync('Connected. Last synced '+new Date().toLocaleTimeString()+'.');
+  }catch(e){setSync('Could not reach the shared collection ('+e.message+'). Showing the last saved copy.')}
+}
+async function connect(u){
+  u=u.trim().replace(/\/+$/,'');
+  if(!/^https:\/\/.+/.test(u)){alert('That does not look like a database link. It should start with https://');return false}
+  try{
+    const r=await fetch(u+'/movies.json');
+    if(!r.ok)throw new Error('status '+r.status+' (check the database rules)');
+    const cloud=await r.json()||{};
+    const extra=movies.filter(m=>!cloud[m.uid]);
+    if(extra.length&&confirm('Upload '+extra.length+' movie(s) from this device to the shared collection? (Cancel = they will be replaced by the shared list.)')){
+      const body={};extra.forEach(m=>body[m.uid]=m);
+      const p=await fetch(u+'/movies.json',{method:'PATCH',body:JSON.stringify(body)});
+      if(!p.ok)throw new Error('upload failed, status '+p.status);
+    }
+    dbUrl=u;localStorage.setItem('db',u);$('#db').value=u;
+    await sync();
+    return true;
+  }catch(e){alert('Could not connect: '+e.message);return false}
+}
+$('#db').value=dbUrl;
+$('#saveDb').onclick=async()=>{if(await connect($('#db').value))alert('Connected!')};
+$('#invite').onclick=async()=>{
+  if(!dbUrl){alert('Connect to the shared collection first.');return}
+  const link=location.origin+location.pathname+'#db='+encodeURIComponent(dbUrl)+'&key='+encodeURIComponent(apiKey);
+  try{await navigator.clipboard.writeText(link);alert('Invite link copied. Send it to your friend and have them open it.')}
+  catch(e){prompt('Copy this invite link:',link)}
+};
+setInterval(sync,30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
+(async()=>{
+  const h=new URLSearchParams(location.hash.slice(1));
+  if(h.get('db')){
+    if(h.get('key')){apiKey=h.get('key');localStorage.setItem('tmdb',apiKey);$('#key').value=apiKey}
+    history.replaceState(null,'',location.pathname);
+    await connect(h.get('db'));
+  }else sync();
+})();
 
 render();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
