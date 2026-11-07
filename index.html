@@ -124,7 +124,7 @@ function render(){
 }
 $('#filter').oninput=render;
 $('#vrAll').onclick=()=>{showAll=!showAll;render()};
-$('#sort').innerHTML='<option value="title">sort: a to z</option><option value="new">sort: recently added</option><option value="avg">sort: average rating</option>'+PEOPLE.map(p=>`<option value="${p}">sort: ${p}'s rating</option>`).join('');
+$('#sort').innerHTML='<option value="title">a to z</option><option value="new">recently added</option><option value="avg">average rating</option>'+PEOPLE.map(p=>`<option value="${p}">${p}'s rating</option>`).join('');
 $('#sort').value=sortBy;
 $('#sort').onchange=()=>{sortBy=$('#sort').value;localStorage.setItem('sort',sortBy);render()};
 $('#me').innerHTML='<option value="">choose…</option>'+PEOPLE.map(p=>`<option value="${p}">${p}</option>`).join('');
