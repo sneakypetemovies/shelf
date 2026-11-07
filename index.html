@@ -31,15 +31,16 @@ nav button.on{color:var(--ac)}
 .st{font-size:22px;line-height:1;color:#6B7556;padding:2px 4px}
 .st.on{color:#E8C468}
 .st.mine{cursor:pointer}
-.vr{display:inline-block;margin-top:6px;font-size:12px;color:var(--mu);opacity:.55;text-decoration:underline;cursor:pointer}
+.vr{display:inline-block;margin:2px 0 12px;font-size:12px;color:var(--mu);opacity:.55;text-decoration:underline;cursor:pointer}
 .dup{background:#7f1d1d;border:1px solid #ef4444;border-radius:12px;padding:12px;margin-bottom:12px}
 .dup button{margin:10px 0 0}
 </style></head><body>
 
 <div id="v-coll" class="view on">
-  <h2>our collection &nbsp;<span id="count" class="m" style="font-size:14px;color:var(--mu)"></span></h2>
+  <h2>our collection<span id="count" class="m" style="font-size:14px;color:var(--mu)"></span></h2>
   <input id="filter" placeholder="search here!">
   <select id="sort"></select>
+  <span class="vr" id="vrAll">view ratings</span>
   <div id="list"></div>
 </div>
 
@@ -85,7 +86,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 let scanner=null,lastUPC='';
 let dbUrl=localStorage.getItem('db')||'';
 const PEOPLE=['glenn','peter'];
-const shown=new Set(); // movies whose ratings are currently revealed (resets on reload)
+let showAll=false; // ratings (and remove buttons) are hidden until toggled; resets on reload
 let sortBy=localStorage.getItem('sort')||'title';
 const rate=(m,p)=>(m.ratings&&m.ratings[p])||0;
 const avg=m=>{const r=PEOPLE.map(p=>rate(m,p)).filter(Boolean);return r.length?r.reduce((a,b)=>a+b,0)/r.length:0};
@@ -112,21 +113,17 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
 
 // ---- collection
 function render(){
+  $('#vrAll').textContent=showAll?'hide ratings':'view ratings';
   const f=$('#filter').value.toLowerCase();
   const l=movies.filter(m=>m.title.toLowerCase().includes(f)).sort(cmp);
   $('#count').textContent='('+movies.length+')';
   $('#list').innerHTML=l.map(m=>`<div class="item">${m.poster?`<img src="https://image.tmdb.org/t/p/w185${m.poster}" loading="lazy">`:'<div class="ph"></div>'}
   <div><div class="t">${esc(m.title)}</div><div class="m">${esc(m.year)} · ${esc(m.format)}</div>
-  <div><span class="vr" data-vr="${m.uid}">${shown.has(String(m.uid))?'hide ratings':'view ratings'}</span></div>
-  ${shown.has(String(m.uid))?stars(m):''}
-  ${shown.has(String(m.uid))?`<button class="sec" data-del="${m.uid}">remove</button>`:''}</div></div>`).join('')||'<p class="note">nothing here</p>';
+  ${showAll?stars(m):''}
+  ${showAll?`<button class="sec" data-del="${m.uid}">remove</button>`:''}</div></div>`).join('')||'<p class="note">nothing here</p>';
 }
 $('#filter').oninput=render;
-$('#list').addEventListener('click',e=>{
-  const id=e.target.dataset.vr;if(!id)return;
-  if(shown.has(id))shown.delete(id);else shown.add(id);
-  render();
-});
+$('#vrAll').onclick=()=>{showAll=!showAll;render()};
 $('#sort').innerHTML='<option value="title">sort: a to z</option><option value="new">sort: recently added</option><option value="avg">sort: average rating</option>'+PEOPLE.map(p=>`<option value="${p}">sort: ${p}'s rating</option>`).join('');
 $('#sort').value=sortBy;
 $('#sort').onchange=()=>{sortBy=$('#sort').value;localStorage.setItem('sort',sortBy);render()};
